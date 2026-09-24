@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#111016"><meta name="description" content="暮星游乐园里，317人入园，只有316人离开。原创像素恐怖探索游戏。"><title>惊悚游乐场 · AFTER CLOSING</title></head>
+<body><div id="app">
+<header><span class="wordmark">惊悚游乐场 <small>AFTER CLOSING</small></span><div><button id="map" title="园区导览 · M">导览</button><button id="journal" title="调查手记 · J">手记</button><button id="bag" title="随身物品 · B">背包</button><button id="menu" title="暂停 · Esc">菜单</button></div></header>
+<div id="viewport">
+ <main id="game" aria-label="人物主视角像素探索画面"></main>
+ <div id="touch-controls" hidden><div id="joystick" role="group" aria-label="移动摇杆：拖动移动，推满快走"><div class="stick-ring"><span class="stick-center"></span><span id="stick-knob"></span></div><span class="stick-label">移动 · 推满快走</span></div><span class="look-guide">滑动视角 · 点击物品</span></div>
+ <span id="tap-feedback" aria-hidden="true"></span>
+ <div id="damage-feedback" aria-hidden="true"></div><span id="damage-status" class="sr-only" role="status"></span>
+ <div class="hud"><div id="health" aria-label="剩余票角5"></div><span id="location">暮星游乐园</span><span id="seal-count">印章 0/5</span></div>
+ <div id="room-toast" aria-hidden="true"></div>
+ <div id="scene-notice" role="status"></div>
+ <div class="view-compass" id="facing">面朝 北</div><div id="interaction-hint"></div><div id="danger-cue" role="status"></div>
+ <div id="loading" role="status">正在打开最后一盏灯……</div>
+ <section id="title-screen" aria-label="游戏标题菜单">
+  <span class="edition">0.8.1 · 指尖探夜<br>触控修复 / 五章 · 29处区域</span>
+  <div class="title-copy"><p class="title-overline">暮星游乐园 · 最后营业日</p><h1>惊悚<br>游乐场</h1><p class="english">AFTER CLOSING</p><p class="tagline">快乐，从不散场。</p>
+  <nav><button id="new-game" disabled>新的旅程</button><button id="continue-game" disabled>继续旅程</button><button id="title-sound">声音 开</button></nav><p class="title-footnote">317人进入。316人离开。</p></div>
+ </section>
+ <section id="dialog" role="dialog" aria-modal="true" aria-labelledby="speaker" hidden><div class="dialog-heading"><span id="speaker"></span><small id="dialog-count"></small></div><div class="dialog-body"><canvas id="portrait" width="24" height="28" aria-hidden="true"></canvas><p id="line"></p></div><div id="choices"></div></section>
+ <section id="pause-panel" class="panel" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><h2 id="pause-title">暂停</h2><p id="pause-copy">快乐，从不散场。</p><div class="menu-grid"><button id="resume">继续探索</button><button id="save">保存进度</button><button id="load">读取存档</button><button id="restart">重试本段</button><button id="sound">声音 开</button><button id="motion">画面动态 标准</button><button id="difficulty">追逐速度 标准</button><button id="new-from-menu">新的旅程</button></div><button id="confirm-new" class="danger-button" hidden>确认重新开始</button><p class="help">左下摇杆移动，推满快走；下拉倒退，左右推动侧移。<br>在画面上左右滑动转身，上下滑动抬头、低头。<br>靠近后直接点击物品或门。可双指同时移动和观察。<br>键盘：W / S 前后 · A / D 转身 · X / C 侧移 · R 回头<br>E / 空格 调查准星所指 · Shift 快走 · Q 求助<br>B 背包 · J 手记 · M 导览 · Esc 暂停<br>危险先有预兆。“动态少”关闭红闪与震动。</p></section>
+ <section id="bag-panel" class="panel bag-panel" role="dialog" aria-modal="true" aria-labelledby="bag-title" hidden><div class="bag-head"><h2 id="bag-title">随身物品</h2><button id="bag-close">返回</button></div><nav class="tabs" aria-label="记录分类"><button data-tab="items">物品</button><button data-tab="notes">手记</button><button data-tab="map">导览</button></nav><div id="bag-content"></div></section>
+ <section id="death" class="panel ending-panel" role="dialog" aria-modal="true" aria-labelledby="death-title" hidden><p class="small-caps">TICKET EXPIRED</p><h2 id="death-title">你没有走到出口。</h2><p>最后一个票角，落在了地上。<br>从本段最近的安全记录继续。</p><button id="retry">重新醒来</button></section>
+ <section id="ending" class="panel ending-panel" role="dialog" aria-modal="true" aria-labelledby="ending-title" hidden><p class="small-caps">AFTER CLOSING</p><h2 id="ending-title"></h2><p id="ending-copy"></p><p id="ending-stats"></p><div><button id="end-retry">回到最后记录</button><button id="end-new">新的旅程</button></div></section>
+</div>
+<div class="under-screen"><span id="chapter">一场没有散场的夜游</span><button id="hint" title="渐进提示 · Q">求助（可选）</button></div>
+<footer>
+ <p class="touch-guide">摇杆移动 · 滑动观察 · 点击调查</p>
+ <p class="keyboard-guide">W / S 前后 · A / D 转身 · X / C 侧移<br>鼠标拖动视角 · 点击物品 · E 调查准星</p>
+</footer><p id="context" role="status">建议戴耳机 · 手机横屏可获得更大的画面</p>
+</div><script type="module" src="/src/main.ts"></script></body></html>
