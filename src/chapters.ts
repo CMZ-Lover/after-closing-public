@@ -48,6 +48,7 @@ export function chapterInteraction(g:Game,p:Prop):boolean{
   else{g.mark('crank-set');g.save();g.notice('','door');}break;
  case 'machine-moon':case 'machine-star':case 'machine-sun':{
   if(has(s,'seal-stop')){g.talk('｜三个制动已经锁住。');break;}
+  if(!has(s,'pressure-balanced')){g.talk('｜制动被两条活塞顶回去。\n工具柜旁的油管通向液压检修间，两边的读数还不相同。');break;}
   if(!has(s,'crank-set')){g.talk('｜制动弹回了原位。齿轮仍在空转。');break;}
   const order=['machine-sun','machine-star','machine-moon'],progress=s.puzzles.brakes??=[];
   if(p.id===order[progress.length]){

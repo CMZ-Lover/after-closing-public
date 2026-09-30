@@ -72,7 +72,7 @@ describe('telegraphed and avoidable hazards',()=>{
  });
  it('repeated hazard contact uses invulnerability and cannot remove several corners per frame',()=>{const g=at('bumper',4,8);g.roomTime=1600;g.checkHazards();for(let i=0;i<50;i++)g.checkHazards();expect(g.s.hp).toBe(4);expect(g.damageSequence).toBe(1);});
  it('obvious scene changes no longer open a dialogue',()=>{
-  for(const [room,id,flagName] of [['bumper','bumper-console','power-off'],['stage','stage-a','curtain-left'],['boathouse','boat-pump','boat-drained']] as const){const g=at(room,...rooms[room].spawn);g.interact(rooms[room].props.find(p=>p.id===id)!);expect(has(g.s,flagName)).toBe(true);expect(g.dialog).toBeNull();}
+  for(const [room,id,flagName] of [['bumper','bumper-console','power-off'],['stage','stage-a','curtain-left'],['boathouse','boat-pump','boat-drained']] as const){const g=at(room,...rooms[room].spawn);for(const f of ['breaker-unlocked','intake-closed','sluice-open'])flag(g.s,f);g.interact(rooms[room].props.find(p=>p.id===id)!);expect(has(g.s,flagName)).toBe(true);expect(g.dialog).toBeNull();}
  });
  it('environment-only introductions never freeze an encounter',()=>{for(const room of ['pursuit','bumper','projection','carousel','boathouse'] as const){const g=new Game();g.enter(room);expect(g.dialog).toBeNull();clock(g,100);expect(g.time).toBe(100);}});
 });

@@ -2,7 +2,7 @@ import {describe,it,expect} from 'vitest';
 import {Game} from '../src/engine';
 import {fresh,has,flag,parseSave,type RoomId} from '../src/state';
 import {camera,joystick,LookGesture,sprintBlend,canvasPoint,FrameGate,StickContact} from '../src/controls';
-import {viewPixels} from '../src/perspective';
+import {viewPixels,VIEW_WIDTH,VIEW_HEIGHT,HORIZON} from '../src/perspective';
 import {SurfaceRenderer} from '../src/spatial';
 
 function at(room:RoomId,x:number,y:number){return new Game({...fresh(),room,x,y});}
@@ -19,7 +19,7 @@ describe('direct-touch input',()=>{
  it('held touches are not expired by a timer',()=>{const c=new StickContact();c.begin(1);c.bindTouch(9);for(let i=0;i<1000;i++)expect(c.reconcileTouches([9])).toBe(false);expect(c.pointer).toBe(1);});
  it('smoothly accelerates and maps only the actual canvas, excluding letterboxing',()=>{
   expect(sprintBlend(.7)).toBe(0);expect(sprintBlend(1)).toBe(1);expect(Math.abs(sprintBlend(.921)-sprintBlend(.919))).toBeLessThan(.02);
-  const rect={left:100,top:50,width:800,height:500};expect(canvasPoint(500,300,rect)).toEqual({x:200,y:125});expect(canvasPoint(50,300,rect)).toBeNull();expect(canvasPoint(900,300,rect)).toBeNull();
+  const rect={left:100,top:50,width:800,height:500};expect(canvasPoint(500,300,rect)).toEqual({x:VIEW_WIDTH/2,y:VIEW_HEIGHT/2});expect(canvasPoint(50,300,rect)).toBeNull();expect(canvasPoint(900,300,rect)).toBeNull();
  });
  it('skips unchanged frames and schedules changes without dropping the final frame',()=>{
   const f=new FrameGate();expect(f.ready('a',0)).toBe(true);expect(f.ready('a',100)).toBe(false);expect(f.ready('b',100)).toBe(true);expect(f.ready('c',110)).toBe(false);expect(f.ready('c',140)).toBe(true);expect(f.ready('c',10000)).toBe(false);expect(f.ready('room',141,true)).toBe(true);
@@ -64,14 +64,14 @@ describe('direct-touch input',()=>{
 });
 describe('visible surface picking and volume',()=>{
  it('a nearer surface occludes both the color and click target behind it',()=>{
-  const r=new SurfaceRenderer({x:0,y:0,yaw:0,pitch:0},Array(400).fill(20));
+  const r=new SurfaceRenderer({x:0,y:0,yaw:0,pitch:0},Array(VIEW_WIDTH).fill(20));
   r.draw({points:[[-1,-3,2],[1,-3,2],[1,-3,0],[-1,-3,0]],color:'#bcac9a',id:'behind'});
   r.draw({points:[[-1,-2,2],[1,-2,2],[1,-2,0],[-1,-2,0]],color:'#45364b',id:'front'});
-  expect(r.pick(200,112)).toBe('front');expect(r.hits.includes(r.ids.indexOf('behind')+1)).toBe(false);expect(r.pick(-1,100)).toBeUndefined();
+  expect(r.pick(VIEW_WIDTH/2,HORIZON)).toBe('front');expect(r.hits.includes(r.ids.indexOf('behind')+1)).toBe(false);expect(r.pick(-1,100)).toBeUndefined();
  });
  it('walls prevent clicks and nearby small objects remain pickable',()=>{
   const g=at('ticket',13,6);g.aim(0,-.2);const picture=viewPixels(g.s),r=picture.surfaces!,n=r.ids.indexOf('ticket-ledger')+1;expect(n).toBeGreaterThan(0);expect(r.hits.includes(n)).toBe(true);
-  const blocked=new SurfaceRenderer({x:0,y:0,yaw:0,pitch:0},Array(400).fill(1));blocked.draw({points:[[-1,-3,2],[1,-3,2],[1,-3,0],[-1,-3,0]],color:'#bbbbbb',id:'hidden'});expect(blocked.pick(200,112)).toBeUndefined();
+  const blocked=new SurfaceRenderer({x:0,y:0,yaw:0,pitch:0},Array(VIEW_WIDTH).fill(1));blocked.draw({points:[[-1,-3,2],[1,-3,2],[1,-3,0],[-1,-3,0]],color:'#bbbbbb',id:'hidden'});expect(blocked.pick(VIEW_WIDTH/2,HORIZON)).toBeUndefined();
  });
  it('oblique views reveal a cabinet side and survive near-plane clipping',()=>{
   const g=at('archive',10,8);g.aim(.6,-.1);const p=viewPixels(g.s);expect(p.surfaces!.hits.includes(p.surfaces!.ids.indexOf('archive-shelf')+1)).toBe(true);

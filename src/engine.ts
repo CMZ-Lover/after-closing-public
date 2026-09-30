@@ -4,6 +4,7 @@ import {chapterInteraction} from './chapters';
 import {offerHint} from './puzzles';
 import {rotated,vector,cameraPoint,lineOfSight} from './perspective';
 import {camera,directionAngle,angleDirection,angleDistance,wrapAngle} from './controls';
+import {prepareDepth,depthInteraction,depthEnter,depthHazards,tideLow} from './depth';
 export interface Choice {label:string;run:()=>void;}
 export interface Dialogue {pages:string[];index:number;choices:Choice[];after?:()=>void;}
 export interface Enemy {x:number;y:number;kind:'keeper'|'doll'|'paper';next:number;}
@@ -14,8 +15,9 @@ export class Game {
  s:State;dialog:Dialogue|null=null;checkpoint:State;enemies:Enemy[]=[];sounds:Sound[]=[];
  time=0;roomTime=0;invulnerable=0;dead=false;finished=false;easy=false;revision=0;message='';messageUntil=0;
  damageSequence=0;scare:Scare|null=null;counterStrike:{x:number;y:number;at:number}|null=null;chaseReady=0;
+ ambush:{x:number;y:number;at:number;text:string;cue:string}|null=null;
  brake=0;bell=0;onSave:((s:State)=>void)|null=null;
- constructor(s:State=fresh()){this.s=copy(s);if(blocked(this.s,s.x,s.y)){[this.s.x,this.s.y]=rooms[s.room].spawn;}if(has(this.s,'face-seen')&&!this.s.flags.some(f=>f.startsWith('mirror-watch-')))flag(this.s,'mirror-cleared');this.checkpoint=copy(this.s);this.spawnEnemies();}
+ constructor(s:State=fresh()){this.s=copy(s);prepareDepth(this.s);if(blocked(this.s,s.x,s.y)){[this.s.x,this.s.y]=rooms[s.room].spawn;delete this.s.view;}if(has(this.s,'face-seen')&&!this.s.flags.some(f=>f.startsWith('mirror-watch-')))flag(this.s,'mirror-cleared');this.checkpoint=copy(this.s);this.spawnEnemies();}
  emit(sound:Sound){this.sounds.push(sound);}
  changed(){this.revision++;}
  notice(text='',sound?:Sound,duration=4200){this.message=text;this.messageUntil=this.time+duration;if(sound)this.emit(sound);this.changed();}
@@ -26,7 +28,7 @@ export class Game {
  record(text:string){note(this.s,text);}
  owned(i:ItemId){return this.s.items.includes(i);}
  save(){if(this.chasing||this.dead)return false;this.checkpoint=copy(this.s);this.onSave?.(this.checkpoint);return true;}
- restore(){this.s=copy(this.checkpoint);this.s.hp=5;this.dead=false;this.finished=false;this.dialog=null;this.time=0;this.roomTime=0;this.invulnerable=1800;this.brake=0;this.bell=0;this.scare=null;this.counterStrike=null;this.message='';this.spawnEnemies();this.changed();}
+ restore(){this.s=copy(this.checkpoint);this.s.hp=5;this.dead=false;this.finished=false;this.dialog=null;this.time=0;this.roomTime=0;this.invulnerable=1800;this.brake=0;this.bell=0;this.scare=null;this.counterStrike=null;this.ambush=null;this.message='';this.spawnEnemies();this.changed();}
  get chasing(){return (this.s.room==='pursuit'&&!has(this.s,'mirror-escaped'))||(this.s.room==='prize'&&has(this.s,'doll-awake')&&!has(this.s,'doll-escaped'))||(this.s.room==='parade'&&has(this.s,'parade-clear')&&!has(this.s,'parade-escaped'))||(this.s.room==='projection'&&has(this.s,'film-edited')&&!has(this.s,'film-escaped'));}
  intro(){
   const r=rooms[this.s.room];if(!has(this.s,'visit-'+this.s.room)){
@@ -44,9 +46,9 @@ export class Game {
   if(prev==='parade'&&room==='foyer')this.mark('parade-escaped');
   if(prev==='projection'&&room==='backstage')this.mark('film-escaped');
   if(prev==='mirror'&&has(this.s,'face-seen'))this.mark('mirror-cleared');
-  this.scare=null;this.counterStrike=null;
+  this.scare=null;this.counterStrike=null;this.ambush=null;
   this.s.room=room;[this.s.x,this.s.y]=spawn??rooms[room].spawn;this.s.facing='up';delete this.s.view;this.roomTime=0;this.invulnerable=this.time+1600;this.dialog=null;this.message='';this.emit('door');
-  this.spawnEnemies();this.intro();if(!this.chasing)this.save();this.changed();
+  this.spawnEnemies();this.intro();depthEnter(this,prev);if(!this.chasing)this.save();this.changed();
  }
  spawnEnemies(){
   this.enemies=[];this.chaseReady=this.time+2800;
@@ -122,12 +124,15 @@ export class Game {
   if(this.s.hp<=0){this.dead=true;this.dialog=null;this.changed();return;}
   this.changed();
  }
+ warnAt(cue:string,text:string){this.ambush={x:this.s.x,y:this.s.y,at:this.time+2400,text,cue};this.notice(cue,'warning',5000);}
  hazards():Hazard[]{
   if(this.s.room==='bumper'&&!has(this.s,'power-off')){const h:Hazard[]=[];for(let x=4;x<=16;x++){if(x===10||x===11)continue;for(const y of [8,11]){const phase=(this.roomTime+(y===8?0:3000))%6000;h.push({x,y,warning:phase<1500,active:phase>=1500&&phase<2400,kind:'electric'});}}return h;}
   if(this.s.room==='pursuit'&&!has(this.s,'mirror-escaped'))return [[4,11],[8,8],[10,6],[14,5]].map(([x,y],i)=>{const phase=(this.roomTime+i*1300)%6000;return {x,y,kind:'hand',warning:phase<1000,active:phase>=1000&&phase<1900};});
-  return [];
+  const extra=depthHazards(this);
+  if(this.ambush)extra.push({x:this.ambush.x,y:this.ambush.y,kind:'hand',warning:true,active:false});
+  return extra;
  }
- checkHazards(){if(this.hazards().some(h=>h.active&&h.x===this.s.x&&h.y===this.s.y))this.hurt(this.s.room==='bumper'?'电流穿过鞋底。避开发红的电轨。':'地上的手抓住了你的脚踝。');}
+ checkHazards(){if(this.hazards().some(h=>h.active&&h.x===this.s.x&&h.y===this.s.y))this.hurt(this.s.room==='bumper'?'电流穿过鞋底。避开发红的电轨。':this.s.room==='hydraulics'?'活塞擦过脚踝。避开导轨，或先落下检修锁。':'地上的手抓住了你的脚踝。');}
  tick(ms:number){
   if(this.dead||this.finished)return;ms=Math.max(0,Math.min(ms,120));this.s.seconds+=ms/1000;if(this.dialog)return;this.time+=ms;this.roomTime+=ms;
   this.checkHazards();
@@ -135,17 +140,20 @@ export class Game {
   if(this.scare&&!this.scare.hit&&this.time-this.scare.started>=220){this.scare.hit=true;this.hurt('你看见了不该看见的东西。票角裂开了。');}
   if(this.scare&&this.time-this.scare.started>=this.scare.duration)this.scare=null;
   if(this.counterStrike&&this.time>=this.counterStrike.at){const strike=this.counterStrike;this.counterStrike=null;if(this.s.x===strike.x&&this.s.y===strike.y)this.hurt('玻璃里的手掠过了你的手背。');else this.notice('那只手抓了个空。','knock');}
+  if(this.ambush&&this.time>=this.ambush.at){const strike=this.ambush;this.ambush=null;if(this.s.x===strike.x&&this.s.y===strike.y)this.hurt(strike.text);else this.notice('掌印在你离开的位置猛地合拢。','knock');this.changed();}
   for(const e of this.enemies){if(this.time>=e.next){const next=path(this.s,[e.x,e.y],[this.s.x,this.s.y])[0];if(next){[e.x,e.y]=next;}e.next=this.time+(this.easy?700:e.kind==='doll'?440:480);this.changed();}
    if(this.time>=this.chaseReady&&e.x===this.s.x&&e.y===this.s.y)this.hurt('它撕下一个票角。快去出口！');}
  }
  dangerCue(){
+  if(this.ambush)return this.ambush.cue+' 离开脚下的位置。';
   if(this.counterStrike)return '玻璃鼓起，手指正在伸出——离开脚下的位置。';
   if(this.s.room==='mirror'&&has(this.s,'face-seen')&&!has(this.s,'mirror-cleared')&&!has(this.s,'mirror-scare-seen'))return '背后有呼吸声。岚攥住你的衣袖：别回头，侧着离开。';
   const nearest=this.enemies.map(e=>({...e,d:Math.abs(e.x-this.s.x)+Math.abs(e.y-this.s.y)})).sort((a,b)=>a.d-b.d)[0];
   let footsteps='';if(nearest&&nearest.d<=6){const q=cameraPoint(this.s,nearest.x+.5,nearest.y+.5);footsteps=`${nearest.d<=2?'拖行声贴得很近':'脚步声越来越近'} · ${q.depth<-.5?'身后':q.side<-.5?'左侧':q.side>.5?'右侧':'前方'}`;}
   const close=this.hazards().filter(h=>Math.abs(h.x-this.s.x)+Math.abs(h.y-this.s.y)<=2);
   const danger=close.find(h=>h.active)??close.find(h=>h.warning);
-  if(danger){const cue=danger.kind==='electric'?(danger.active?'附近电轨正在放电。':'附近黄灯亮起，电轨发出滋响。'):(danger.active?'附近掌印下的手指正在抓握。':'附近地上的掌印隆起，指尖正在收拢。');return cue+(footsteps?' '+footsteps:'');}
+  if(danger){const cue=this.s.room==='hydraulics'?(danger.active?'活塞正沿导轨撞过。避开划痕。':'附近黄灯亮起，活塞开始回缩。'):danger.kind==='electric'?(danger.active?'附近电轨正在放电。':'附近黄灯亮起，电轨发出滋响。'):(danger.active?'附近掌印下的手指正在抓握。':'附近地上的掌印隆起，指尖正在收拢。');return cue+(footsteps?' '+footsteps:'');}
+  if(this.s.room==='sluice'&&!has(this.s,'intake-closed'))return tideLow(this.roomTime)?'水尺低于白线。闸板上的压力减轻了。':'水尺高于白线。湖水正在顶住闸板。';
   return footsteps||(this.chasing?'远处传来拖行声。绿色门灯仍亮着。':'');
  }
  gain(i:ItemId){give(this.s,i);this.emit('item');this.changed();}
@@ -166,7 +174,7 @@ export class Game {
    if(this.chasing){this.message='现在没有时间写下名字。';return;}
    s.hp=5;this.save();this.notice('进度已保存 · 票角已恢复','seal');return;
   }
-  if(chapterInteraction(this,p))return;
+  if(depthInteraction(this,p)||chapterInteraction(this,p))return;
   switch(p.id){
    case 'gate-sign':this.talk('｜暮星游乐园\n「快乐，从不散场。」\n\n背面有人刻着：结束，不等于遗忘。');break;
    case 'gate-phone':this.record('林晴失踪于2014年的最后营业日。317人入园，只有316人离开。');this.talk(['｜寻人启事。林晴。\n照片上的姐姐牵着五岁的你，另一只手握着蓝色发带。','林澈｜纸都黄了。\n为什么照片里的我，还在看着现在的我？']);break;

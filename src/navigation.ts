@@ -1,11 +1,11 @@
 import {has, type State,type RoomId,type Seal} from './state';
 import {rooms,visible} from './world';
 export const CHAPTERS:{title:string;seal:Seal;areas:RoomId[]}[]=[
- {title:'一 · 镜宫',seal:'看见',areas:['mirror','archive','darkroom','glass','pursuit']},
- {title:'二 · 旋转木马',seal:'停下',areas:['carousel','machine','workshop']},
- {title:'三 · 欢乐街与巡游',seal:'舍弃',areas:['arcade','prize','booth','bumper','parade','organ']},
- {title:'四 · 午夜剧场',seal:'面对',areas:['foyer','stage','backstage','dressing','projection']},
- {title:'五 · 摩天轮与闭园',seal:'告别',areas:['lake','boathouse','wheel','hoist','control','dawn']}
+ {title:'一 · 镜宫',seal:'看见',areas:['mirror','archive','darkroom','optics','glass','pursuit']},
+ {title:'二 · 旋转木马',seal:'停下',areas:['carousel','machine','workshop','hydraulics']},
+ {title:'三 · 欢乐街与巡游',seal:'舍弃',areas:['arcade','prize','booth','stockroom','bumper','parade','organ']},
+ {title:'四 · 午夜剧场',seal:'面对',areas:['foyer','stage','backstage','dressing','soundroom','projection']},
+ {title:'五 · 摩天轮与闭园',seal:'告别',areas:['lake','boathouse','sluice','wheel','hoist','control','dawn']}
 ];
 export function exits(s:State){
  return rooms[s.room].props.filter(p=>p.to&&visible(s,p)).map(p=>({

@@ -1,4 +1,5 @@
 import type {Direction,State,ViewPose} from './state';
+import {VIEW_WIDTH,VIEW_HEIGHT} from './viewport';
 
 export const TAU=Math.PI*2;
 export const directionAngle=(d:Direction)=>({up:0,right:Math.PI/2,down:Math.PI,left:Math.PI*1.5})[d];
@@ -16,8 +17,8 @@ export function joystick(dx:number,dy:number,radius:number){
 export const sprintBlend=(power:number)=>{const t=Math.max(0,Math.min(1,(power-.72)/.28));return t*t*(3-2*t);};
 export function canvasPoint(x:number,y:number,rect:{left:number;top:number;width:number;height:number}){
  if(rect.width<=0||rect.height<=0)return null;
- const px=(x-rect.left)/rect.width*400,py=(y-rect.top)/rect.height*250;
- return px>=0&&px<400&&py>=0&&py<250?{x:px,y:py}:null;
+ const px=(x-rect.left)/rect.width*VIEW_WIDTH,py=(y-rect.top)/rect.height*VIEW_HEIGHT;
+ return px>=0&&px<VIEW_WIDTH&&py>=0&&py<VIEW_HEIGHT?{x:px,y:py}:null;
 }
 /** Skip unchanged scenes and cap changing scenes at 30 fps. */
 export class FrameGate {

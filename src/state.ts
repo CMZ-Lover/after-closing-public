@@ -1,13 +1,13 @@
-export const ROOM_IDS = ['gate','ticket','plaza','mirror','archive','darkroom','glass','pursuit','rest','carousel','machine','workshop','arcade','prize','booth','bumper','parade','organ','foyer','stage','backstage','dressing','projection','lake','boathouse','wheel','hoist','control','dawn'] as const;
+export const ROOM_IDS = ['gate','ticket','plaza','mirror','archive','darkroom','optics','glass','pursuit','rest','carousel','machine','workshop','hydraulics','arcade','prize','booth','stockroom','bumper','parade','organ','foyer','stage','backstage','dressing','soundroom','projection','lake','boathouse','sluice','wheel','hoist','control','dawn'] as const;
 export type RoomId = typeof ROOM_IDS[number];
 export type Direction = 'up'|'down'|'left'|'right';
-export const ITEM_IDS = ['ticket','brass-key','mirror-shard','crank','music-strip','token','ribbon','record','lan-name','negative','fuse','film-a','film-b','film-c','film-d','boat-key'] as const;
+export const ITEM_IDS = ['ticket','brass-key','mirror-shard','crank','music-strip','token','ribbon','record','lan-name','negative','fuse','film-a','film-b','film-c','film-d','boat-key','refund-slip'] as const;
 export type ItemId = typeof ITEM_IDS[number];
 export const SEALS = ['看见','停下','舍弃','面对','告别'] as const;
 export type Seal = typeof SEALS[number];
 export interface ViewPose {x:number;y:number;yaw:number;pitch:number;}
 export interface State {version:3; room:RoomId; x:number; y:number; facing:Direction; view?:ViewPose; hp:number; items:ItemId[]; flags:string[]; seals:Seal[]; notes:string[]; trust:number; seconds:number; steps:number; puzzles:Record<string,number[]>; hints:Record<string,number>; ending:null|'together'|'alone'|'stay';}
-export const fresh=():State=>({version:3,room:'gate',x:10,y:12,facing:'up',hp:5,items:[],flags:[],seals:[],notes:[],trust:0,seconds:0,steps:0,puzzles:{},hints:{},ending:null});
+export const fresh=():State=>({version:3,room:'gate',x:10,y:12,facing:'up',hp:5,items:[],flags:['depth-v09'],seals:[],notes:[],trust:0,seconds:0,steps:0,puzzles:{},hints:{},ending:null});
 export const has=(s:State,f:string)=>s.flags.includes(f);
 export function flag(s:State,f:string){if(!has(s,f))s.flags.push(f);}
 export function give(s:State,i:ItemId){if(!s.items.includes(i))s.items.push(i);}
@@ -31,7 +31,8 @@ export const ITEM_INFO:Record<ItemId,[string,string]>={
  'film-b':['胶片 · 伤口','姐姐用发带包住孩子的右手。身后的灯还亮着。'],
  'film-c':['胶片 · 熄灯','工作人员推开栅门，灯泡从远处逐盏熄灭。'],
  'film-d':['胶片 · 检修门','门下落前，一只缠着蓝布的小手被推了出去。'],
- 'boat-key':['船坞钥匙','齿端残留着蓝绿色铜锈。']
+ 'boat-key':['船坞钥匙','齿端残留着蓝绿色铜锈。'],
+ 'refund-slip':['注销凭据','317号原始交易已注销。柜员没有给女孩奖品，只将她的姓名从待领奖名单上划去。']
 };
 export function parseSave(raw:string|null):State|null{
  try{const s=JSON.parse(raw??'null');
@@ -49,9 +50,10 @@ export function parseSave(raw:string|null):State|null{
   const dict=(v:unknown)=>!!v&&typeof v==='object'&&!Array.isArray(v)&&Object.getPrototypeOf(v)===Object.prototype;
   if(!dict(s.puzzles)||!dict(s.hints)||Object.keys(s.puzzles).length>40||Object.keys(s.hints).length>40)return null;
   for(const [k,v] of Object.entries(s.puzzles))if(!/^[a-z][a-z0-9-]{0,40}$/.test(k)||!Array.isArray(v)||v.length>16||v.some(n=>!Number.isInteger(n)||n<0||n>99))return null;
-  const layouts:Record<string,[number,number,number]>={reflection:[0,4,3],weights:[3,3,1],circuit:[4,4,1],brakes:[0,3,2],bells:[0,4,1],film:[0,4,3],wheel:[1,1,17]};
+  const layouts:Record<string,[number,number,number]>={reflection:[0,4,3],weights:[3,3,1],circuit:[4,4,1],brakes:[0,3,2],bells:[0,4,1],film:[0,4,3],wheel:[1,1,17],optics:[3,3,3],pressure:[3,3,8],voices:[3,3,1],release:[5,5,1]};
   for(const [k,v] of Object.entries(s.puzzles) as [string,number[]][]){const spec=layouts[k];if(!spec||v.length<spec[0]||v.length>spec[1]||v.some(n=>n>spec[2]))return null;}
   if(s.puzzles.film&&new Set(s.puzzles.film).size!==s.puzzles.film.length)return null;
+  if(s.puzzles.pressure&&(s.puzzles.pressure[1]>5||s.puzzles.pressure[2]>3||s.puzzles.pressure.reduce((a:number,b:number)=>a+b,0)!==8))return null;
   for(const [k,v] of Object.entries(s.hints))if(!/^[a-z][a-z0-9-]{0,40}$/.test(k)||!Number.isInteger(v)||Number(v)<0||Number(v)>3)return null;
   return s as State;
  }catch{return null;}

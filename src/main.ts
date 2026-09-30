@@ -4,7 +4,8 @@ import {Game} from './engine';
 import {fresh,has,parseSave,ITEM_INFO,ROOM_IDS,type State,type Direction} from './state';
 import {rooms} from './world';
 import {actorPixels} from './art';
-import {viewPixels,VIEW_WIDTH,VIEW_HEIGHT,compass,type ViewPainting} from './perspective';
+import {viewPixels,VIEW_WIDTH,VIEW_HEIGHT,HORIZON,compass,type ViewPainting} from './perspective';
+import {MotionRig,type Motion} from './motion';
 import {camera,joystick,LookGesture,sprintBlend,canvasPoint,FrameGate,StickContact} from './controls';
 import {ParkAudio} from './audio';
 import {exits,chapterSummary} from './navigation';
@@ -147,13 +148,14 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){clearInput
 
 class Park extends Phaser.Scene {
  floor!:Phaser.GameObjects.Image;nextFrame=0;lastCue='';painting?:ViewPainting;lastUI=0;frameGate=new FrameGate();
+ motionRig=new MotionRig();motion:Motion={};visualTime=0;private state?:State;
  constructor(){super('park');}
  investigate(clientX?:number,clientY?:number){
   if(!canPlay())return;
-  const canvas=$('game').querySelector('canvas')!,r=canvas.getBoundingClientRect(),point=clientX===undefined?{x:VIEW_WIDTH/2,y:112}:canvasPoint(clientX,clientY!,r);
+  const canvas=$('game').querySelector('canvas')!,r=canvas.getBoundingClientRect(),point=clientX===undefined?{x:VIEW_WIDTH/2,y:HORIZON}:canvasPoint(clientX,clientY!,r);
   if(!point)return;const {x,y}=point;
   // A camera movement can occur between the last frame and this tap.
-  const current=viewPixels(game.s,{hazards:game.hazards(),enemies:game.enemies,time:game.time,scare:game.scare,reduced,counterWarning:!!game.counterStrike});
+  const current=viewPixels(game.s,{hazards:game.hazards(),enemies:game.enemies,time:game.time,roomTime:game.roomTime,scare:game.scare,reduced,counterWarning:!!game.counterStrike,motion:this.motion});
   const id=current.pick(x,y);if(!id)return;
   clearInput();game.inspect(id);this.nextFrame=0;render();
   const parent=$('viewport').getBoundingClientRect(),feedback=$('tap-feedback');feedback.style.left=`${r.left-parent.left+x*r.width/VIEW_WIDTH}px`;feedback.style.top=`${r.top-parent.top+y*r.height/VIEW_HEIGHT}px`;feedback.classList.remove('tapped');void feedback.offsetWidth;feedback.classList.add('tapped');
@@ -165,6 +167,9 @@ class Park extends Phaser.Scene {
  }
  update(time:number,delta:number){
   if(!active)return;
+  if(this.state!==game.s){this.state=game.s;this.motionRig.reset();this.visualTime=0;}
+  if(!paused&&!document.hidden&&!game.dead&&!game.finished)this.visualTime+=Math.min(delta,120);
+  this.motion=this.motionRig.sample(game.s,this.visualTime,reduced);
   if(!paused&&!document.hidden){game.tick(delta);
    if(!game.dialog&&!game.dead&&!game.finished){
     const held=new Set(directions.values()),seconds=Math.min(delta,100)/1000,v=camera(game.s);
@@ -172,16 +177,16 @@ class Park extends Phaser.Scene {
     const forward=stickY||Number(held.has('up'))-Number(held.has('down')),side=stickX||Number(held.has('strafe-right'))-Number(held.has('strafe-left'));
     if(forward||side)game.navigate(side,forward,seconds,keys.has('ShiftLeft')||keys.has('ShiftRight')?1:sprintBlend(Math.hypot(stickX,stickY)));
    }
-   audio.tick(Math.min(delta,120),game.s.room,game.chasing);
+   audio.tick(Math.min(delta,120),game.s.room,game.chasing,game.s.flags);
   }
   for(const sound of game.sounds.splice(0))audio.play(sound);
   const s=game.s;
-  const hazards=game.hazards(),animation=game.scare?Math.floor(game.time/33):game.enemies.length?Math.floor(game.time/350):0;
-  const key=s.room+'|'+game.revision+'|'+reduced+'|'+animation+'|'+Math.min(6,Math.floor(game.time/900))+'|'+hazards.map(h=>Number(h.active)+2*Number(h.warning)).join('');
+  const hazards=game.hazards(),animation=game.scare?Math.floor(game.time/33):game.enemies.length?Math.floor(game.time/350):s.room==='hydraulics'&&!has(s,'piston-locked')&&!reduced?Math.floor(game.roomTime/40):s.room==='sluice'?Number(game.roomTime%10000>=4500):0;
+  const key=s.room+'|'+game.revision+'|'+reduced+'|'+animation+'|'+Object.values(this.motion).map(n=>n.toFixed(3)).join(',')+'|'+Math.min(6,Math.floor(game.time/900))+'|'+hazards.map(h=>Number(h.active)+2*Number(h.warning)).join('');
   if(this.frameGate.ready(key,time,s.room!==lastRoom||roomKey==='')){
    roomKey=key;this.nextFrame=time+33;
    const t=this.textures.get('room') as Phaser.Textures.CanvasTexture;t.context.clearRect(0,0,VIEW_WIDTH,VIEW_HEIGHT);
-   this.painting=viewPixels(s,{hazards,enemies:game.enemies,time:game.time,scare:game.scare,reduced,counterWarning:!!game.counterStrike});this.painting.draw(t.context);t.refresh();
+   this.painting=viewPixels(s,{hazards,enemies:game.enemies,time:game.time,roomTime:game.roomTime,scare:game.scare,reduced,counterWarning:!!game.counterStrike,motion:this.motion});this.painting.draw(t.context);t.refresh();
   }
   if(s.room!==lastRoom){clearInput();lastRoom=s.room;$('room-toast').textContent=rooms[s.room].name;$('room-toast').classList.remove('show');void $('room-toast').offsetWidth;$('room-toast').classList.add('show');}
   const cue=game.dangerCue();if(cue!==this.lastCue){this.lastCue=cue;$('danger-cue').textContent=cue;if(!paused&&(cue.includes('黄灯亮起')||cue.includes('指尖正在收拢')))audio.play('warning');}

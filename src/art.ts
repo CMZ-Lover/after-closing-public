@@ -112,6 +112,26 @@ export function propPixels(p:Painter,o:Prop,s:State){
   p.rect(x+3,y-5,w-6,h-9,'#252837');const a=((s.puzzles.wheel?.[0]??0)/18)*Math.PI*2-Math.PI/2;
   p.oval(x+9,y-4,13,13,'#a0927a');p.line(x+15,y+2,x+15+Math.cos(a)*5,y+2+Math.sin(a)*5,'#45313f');
  }
+ if(o.id==='optics-board'){
+  p.rect(x+3,y-5,w-6,h-4,'#252537');
+  for(let i=0;i<3;i++){const cx=x+10+i*14,cy=y+7,a=((s.puzzles.optics?.[i]??0)-1)*Math.PI/2;p.oval(cx-6,cy-6,12,12,'#a09592');p.line(cx,cy,cx+Math.cos(a)*5,cy+Math.sin(a)*5,has(s,'optics-ready')?'#a6c1a6':'#4d3145',2);}
+ }
+ if(o.id==='pressure-bank'){
+  p.rect(x+3,y-5,w-6,h-3,'#24272f');const amounts=s.puzzles.pressure??[8,0,0];
+  for(let i=0;i<3;i++){const xx=x+7+i*18,height=amounts[i]*2;p.rect(xx,y-2,12,22,'#758783');p.rect(xx+2,y+18-height,8,height,'#ad6e5c');p.rect(xx+2,y+10,8,1,'#d4c8ab');p.line(xx+6,y+20,xx+6,y+25,'#a1947b',2);}
+ }
+ if(o.id==='sound-desk'){
+  p.rect(x+3,y-5,w-6,h-2,'#202a33');
+  for(let i=0;i<3;i++){const yy=y+i*7;for(let j=0;j<9;j++){const height=2+(i+j*3)%5;p.rect(x+7+j*4,yy-height/2,2,height,s.puzzles.voices?.[i]?'#b9c0a0':'#505760');}}
+ }
+ if(o.id==='stock-stamp'){
+  for(let i=0;i<3;i++){p.rect(x+5+i*12,y+3,10,13,'#c5b596');p.rect(x+7+i*12,y+7,6,1,'#766270');}
+  if(has(s,'claim-filed')){p.line(x+5,y+3,x+15,y+16,'#963f4d',2);p.rect(x+6,y+11,7,3,'#963f4d');}
+ }
+ if(o.id==='control-release')for(let i=0;i<5;i++){p.rect(x+5+i*8,y,5,13,s.puzzles.release?.[i]?'#26373c':'#a76d78');p.rect(x+5+i*8,y+15,5,3,s.puzzles.release?.[i]?'#a4bda6':'#b78d65');}
+ const indicators:Record<string,string>={'pressure-latch':'piston-locked','bumper-safety':'breaker-unlocked','organ-applause':'applause-off','sluice-inlet':'intake-closed','sluice-outlet':'sluice-open'};
+ if(indicators[o.id])p.rect(x+5,y+1,6,4,has(s,indicators[o.id])?'#a6c3aa':'#b56b71');
+ if(o.id==='optics-source'){p.oval(x+3,y-4,10,10,'#b44960');p.oval(x+6,y-2,4,5,'#de8790');}
 }
 export function roomPixels(s:State):Painter{
  const p=new Painter(),r=rooms[s.room],[a,b,wall,light,ink]=palettes[r.theme];p.rect(0,0,320,240,'#0d0d15');

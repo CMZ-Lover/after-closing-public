@@ -2,7 +2,7 @@ import {has,type RoomId,type State} from './state';
 export const TILE=16, WIDTH=320, HEIGHT=240;
 export type Rect=[number,number,number,number];
 export type Kind='door'|'sign'|'desk'|'book'|'mirror'|'clock'|'save'|'bench'|'horse'|'carousel'|'machine'|'cabinet'|'doll'|'poster'|'switch'|'chair'|'curtain'|'screen'|'wheel'|'flower'|'water'|'gate'|'box'|'lan';
-export interface Prop {id:string;kind:Kind;x:number;y:number;w:number;h:number;label:string;to?:RoomId;spawn?:[number,number];require?:string;locked?:string;hiddenUntil?:string;goneAfter?:string;passable?:boolean;}
+export interface Prop {id:string;kind:Kind;x:number;y:number;w:number;h:number;label:string;to?:RoomId;spawn?:[number,number];require?:string;locked?:string;hiddenUntil?:string;goneAfter?:string;passable?:boolean;mount?:'wall';facing?:'north'|'south'|'east'|'west';}
 export interface Room {name:string;chapter:string;theme:'stone'|'wood'|'ivory'|'violet'|'red'|'green'|'blue'|'black';shape:Rect[];walls:Rect[];props:Prop[];spawn:[number,number];safe?:boolean;intro?:string[];}
 const p=(id:string,kind:Kind,x:number,y:number,label:string,w=1,h=1,extra:Partial<Prop>={}):Prop=>({id,kind,x,y,label,w,h,...extra});
 const door=(id:string,x:number,y:number,label:string,to:RoomId,spawn:[number,number],require?:string,locked?:string):Prop=>p(id,'door',x,y,label,2,1,{to,spawn,require,locked,passable:true});
@@ -89,6 +89,21 @@ export const rooms:Record<RoomId,Room>={
  boathouse:base('湖岸 · 沉船坞','第五章 · 告别','blue',[
   p('boat-pump','switch',3,5,'排水泵'),p('boat-water','water',6,6,'漫上栈桥的水',8,3,{goneAfter:'boat-drained'}),p('boat-key','box',9,7,'淤泥中的铁匣',2,1,{hiddenUntil:'boat-drained'}),p('boat-log','book',14,4,'夜班航行簿'),p('boat-bell','switch',15,10,'岸边的雾钟'),door('boat-back',9,13,'湖畔小屋','lake',[3,9])
  ],{intro:['｜没有船。缆绳却一根根绷得笔直。\n水下面，有人在一下一下敲船底。']}),
+ optics:base('镜宫 · 校片间','第一章 · 背面的方向','violet',[
+  p('optics-board','machine',13,4,'三片遮光叶',3,2),p('optics-manual','book',3,4,'校片工作单'),p('optics-source','switch',3,7,'固定红光源'),p('optics-drain','sign',14,10,'地面排水槽',2),p('optics-portrait','mirror',3,9,'被擦掉的合影',2),door('optics-back',9,13,'冲洗暗房','darkroom',[15,6])
+ ],{walls:[[8,3,1,6]],spawn:[10,12]}),
+ hydraulics:base('木马 · 液压检修间','第二章 · 把重量还给地面','red',[
+  p('pressure-bank','machine',12,4,'三缸分流台',4,2),p('pressure-note','book',3,4,'液压交接单'),p('pressure-window','mirror',3,9,'检修观察窗',2),p('pressure-latch','switch',15,10,'活塞检修锁'),door('pressure-back',9,13,'配重检修间','workshop',[15,6])
+ ],{walls:[[8,3,1,6]],spawn:[10,12]}),
+ stockroom:base('欢乐街 · 作废票库','第三章 · 谁被算作奖品','green',[
+  p('stock-ledger','book',3,4,'三联交易凭据',2),p('stock-rule','poster',14,4,'归档流程',2),p('stock-stamp','desk',13,9,'人工注销台',3,2),p('stock-drawer','cabinet',3,9,'没有名字的抽屉',2,2),door('stock-back',9,13,'柜台内侧','booth',[15,6])
+ ],{walls:[[8,3,1,6]],spawn:[10,12]}),
+ soundroom:base('午夜剧场 · 录音间','第四章 · 听见被盖住的话','blue',[
+  p('sound-desk','machine',13,4,'三轨监听台',3,2),p('sound-note','book',3,4,'同期录音单'),p('sound-phone','machine',3,9,'返听耳机',2),p('sound-window','mirror',14,9,'隔音玻璃',2),door('sound-back',9,13,'更衣室','dressing',[15,6])
+ ],{walls:[[8,3,1,6]],spawn:[10,12]}),
+ sluice:base('湖岸 · 水闸房','第五章 · 给水一个出口','blue',[
+  p('sluice-inlet','switch',4,4,'湖侧进水闸'),p('sluice-outlet','switch',14,4,'下游泄水闸'),p('sluice-map','poster',13,9,'潮位与闸路图',3),p('sluice-window','mirror',3,9,'水尺观察窗',2),door('sluice-back',9,13,'沉船坞','boathouse',[17,7])
+ ],{walls:[[9,3,1,6]],spawn:[10,12]}),
  hoist:base('摩天轮 · 卷扬井','第五章 · 告别','black',[
   p('hoist-lock','cabinet',4,5,'配电柜',2,3),p('hoist-motor','machine',9,4,'卷扬电机',4,3),p('hoist-note','poster',13,9,'检修铭牌',2),p('hoist-memory','book',5,10,'沾着油的值班卡'),door('hoist-back',9,13,'摩天轮站台','wheel',[3,7])
  ],{intro:['｜钢索深处，有一道细小的蓝色影子。\n它晃动时，整座摩天轮都没有响。']})
@@ -103,6 +118,73 @@ rooms.parade.props.push(door('parade-organ',2,3,'纸面具工坊','organ',[10,12
 rooms.backstage.props.push(door('backstage-dress',14,3,'更衣室','dressing',[10,11]),door('backstage-project',3,10,'放映室','projection',[16,5]));
 rooms.lake.props.push(door('lake-boat',2,8,'沉船坞','boathouse',[10,12]));
 rooms.wheel.props.push(door('wheel-hoist',2,6,'卷扬井','hoist',[10,12]));
+rooms.darkroom.props.push(door('dark-optics',15,5,'校片间','optics',[10,12]));
+rooms.workshop.props.push(door('work-pressure',15,5,'液压检修间','hydraulics',[10,12]));
+rooms.booth.props.push(door('booth-stock',15,5,'作废票库','stockroom',[10,12]));
+rooms.dressing.props.push(door('dress-sound',15,5,'录音间','soundroom',[10,12]));
+rooms.boathouse.props.push(door('boat-sluice',17,6,'水闸房','sluice',[10,12]));
+rooms.bumper.props.push(p('bumper-safety','switch',16,10,'事故保护复位'));
+rooms.organ.props.push(p('organ-applause','machine',9,10,'自动掌声磁鼓',2));
+rooms.control.props.push(p('control-release','machine',14,4,'五路滞留记录',3,2));
+// Each extension reveals its machinery along a different route, with blind corners
+// rather than placing every clue directly in front of the arrival point.
+rooms.hydraulics.walls=[[8,3,1,4],[8,9,1,2]];
+rooms.stockroom.walls=[[7,3,1,5],[11,8,1,5]];
+rooms.soundroom.walls=[[7,6,7,1]];
+// Furniture is grouped by use. Wall exhibits face into the room; records sit
+// beside work surfaces, and the larger rides retain a clear route around them.
+function place(room:RoomId,id:string,x:number,y:number,extra:Partial<Prop>={}){
+ const prop=rooms[room].props.find(p=>p.id===id)!;Object.assign(prop,{x,y},extra);
+}
+place('ticket','ticket-ledger',12,5);
+place('ticket','ticket-clock',5,3,{mount:'wall'});
+place('ticket','ticket-poster',4,8,{mount:'wall',facing:'east',w:1,h:2});
+place('gate','gate-phone',3,3,{mount:'wall'});
+place('gate','gate-bench',13,11,{facing:'north'});
+place('plaza','plaza-board',16,3,{mount:'wall'});
+place('archive','archive-ledger',6,5);
+place('archive','archive-shelf',12,3);
+place('archive','archive-note',3,8,{mount:'wall',facing:'east',w:1,h:2});
+place('glass','glass-writing',4,3,{mount:'wall'});
+place('rest','rest-save',7,5);
+place('rest','rest-chair',9,5,{facing:'west'});
+place('rest','rest-radio',5,5);
+place('carousel','carousel-body',6,4,{w:8,h:6});
+place('carousel','carousel-score',15,7);
+place('machine','machine-note',16,7,{mount:'wall',facing:'west'});
+place('arcade','arcade-game',3,3);
+place('arcade','arcade-game2',13,3);
+place('arcade','arcade-rule',7,3,{mount:'wall'});
+place('prize','prize-cage',4,3);
+place('prize','prize-eyes',13,3,{mount:'wall'});
+place('bumper','bumper-notice',4,3,{mount:'wall'});
+place('parade','parade-order',1,8,{mount:'wall',facing:'east',w:1,h:2});
+place('foyer','foyer-poster',3,3,{mount:'wall'});
+place('foyer','foyer-ticket',13,3);
+for(const prop of rooms.stage.props)if(prop.kind==='chair')prop.facing='north';
+place('stage','stage-lake',16,3);
+place('backstage','backstage-ledger',9,5);
+place('lake','lake-window',7,3,{mount:'wall'});
+place('control','control-log',5,5);
+place('darkroom','dark-note',4,5);
+place('darkroom','dark-line',11,3,{mount:'wall'});
+place('workshop','work-score',12,5);
+place('workshop','work-diary',16,8,{mount:'wall',facing:'west',w:1,h:2});
+place('booth','booth-plan',3,8,{mount:'wall',facing:'east',w:1,h:3});
+place('booth','booth-letter',14,5);
+place('organ','organ-face',18,9,{mount:'wall',facing:'west',w:1,h:2});
+place('dressing','dress-letter',5,8);
+place('dressing','dress-mirror',12,3,{mount:'wall'});
+place('projection','project-note',3,8);
+place('boathouse','boat-log',15,4);
+place('optics','optics-manual',5,4);
+place('optics','optics-portrait',1,9,{mount:'wall',facing:'east',w:1,h:2});
+place('hydraulics','pressure-window',1,9,{mount:'wall',facing:'east',w:1,h:2});
+place('stockroom','stock-rule',14,3,{mount:'wall'});
+place('stockroom','stock-drawer',3,10);
+place('soundroom','sound-window',18,8,{mount:'wall',facing:'west',w:1,h:2});
+place('sluice','sluice-map',18,8,{mount:'wall',facing:'west',w:1,h:3});
+place('hoist','hoist-note',18,8,{mount:'wall',facing:'west',w:1,h:2});
 rooms.wheel.intro=['｜空的座舱停在半空。中央的第十七号舱没有降下来。','｜站台上留下了一条很旧的蓝色布痕。'];
 rooms.bumper.intro=['｜顶棚的电网忽然亮起来。地上的红线依次通电。','岚｜等一下。它们不是一直亮着的。'];
 export function visible(s:State,p:Prop){return (!p.hiddenUntil||has(s,p.hiddenUntil))&&(!p.goneAfter||!has(s,p.goneAfter));}
